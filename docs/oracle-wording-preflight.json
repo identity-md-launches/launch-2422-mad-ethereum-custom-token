@@ -1,0 +1,88 @@
+{
+  "endpoint": "https://api.imd.fun/requests/check",
+  "purpose": "Free wording preflight using the concrete local atomic-launch test address and test round. No mainnet MAD deployment is claimed.",
+  "request": {
+    "action": "oracle.request",
+    "input": {
+      "question": "Who spent most MAD freezing wallets in round 1 of token 0x5b0091f49210e7b2a57b03dfe1ab9d08289d9294 on Ethereum, blocks 100 to 100 inclusive? Sum cost in MAD base units from that token's Frozen(address indexed by, address indexed target, uint256 cost, uint64 until) events, grouped by by, ranked highest sum first. Ties: first to reach that total in block/transaction/log order.",
+      "chainId": 1,
+      "answerType": "address[]",
+      "panelSize": 30,
+      "evidence": "chain"
+    }
+  },
+  "httpStatus": 200,
+  "response": {
+    "action": "oracle.request",
+    "request": {
+      "v": 1,
+      "question": "Who spent most MAD freezing wallets in round 1 of token 0x5b0091f49210e7b2a57b03dfe1ab9d08289d9294 on Ethereum, blocks 100 to 100 inclusive? Sum cost in MAD base units from that token's Frozen(address indexed by, address indexed target, uint256 cost, uint64 until) events, grouped by by, ranked highest sum first. Ties: first to reach that total in block/transaction/log order.",
+      "chainId": 1,
+      "window": {
+        "hours": 24
+      },
+      "answerType": "address[]",
+      "evidence": "chain",
+      "panelSize": 30,
+      "quorum": 21,
+      "validForSeconds": 86400,
+      "head": 1
+    },
+    "proposed": {
+      "answerType": {
+        "value": "address[]",
+        "confidence": 0.9
+      },
+      "evidence": {
+        "value": "chain",
+        "confidence": 1
+      },
+      "chainId": {
+        "value": 1,
+        "confidence": 0.99
+      },
+      "toleranceBps": {
+        "value": 0,
+        "confidence": 0.83
+      },
+      "head": {
+        "value": 1,
+        "confidence": 0.92
+      }
+    },
+    "judged": true,
+    "blockers": [],
+    "suggestions": [],
+    "online": 1015,
+    "limits": {
+      "minPanelSize": 5,
+      "maxPanelSize": 100
+    },
+    "chains": [
+      {
+        "id": 1,
+        "name": "Ethereum mainnet"
+      },
+      {
+        "id": 56,
+        "name": "BNB Chain"
+      },
+      {
+        "id": 4663,
+        "name": "Robinhood Chain"
+      },
+      {
+        "id": 8453,
+        "name": "Base"
+      },
+      {
+        "id": 42161,
+        "name": "Arbitrum One"
+      },
+      {
+        "id": 11155111,
+        "name": "Sepolia"
+      }
+    ]
+  }
+}
