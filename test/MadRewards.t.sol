@@ -9,14 +9,14 @@ import {MockIMD, MockIntake} from "./mocks/MockIntake.sol";
 import {OracleAttestation} from "../src/oracle/OracleAttestation.sol";
 import {OracleQuestion} from "../src/oracle/OracleQuestion.sol";
 
-contract MadRewardsTest is MadTestBase {
+abstract contract MadRewardsFixture is MadTestBase {
     uint256 internal constant SIGNER_KEY = 0x1234;
     MockNFT internal nft;
     MockFWAV2 internal pool;
     MockIntake internal intake;
     MockIMD internal imd;
 
-    function setUp() public override {
+    function setUp() public virtual override {
         super.setUp();
         nft = new MockNFT();
         pool = new MockFWAV2(nft);
@@ -86,7 +86,9 @@ contract MadRewardsTest is MadTestBase {
     function _winner(uint256 round) internal view returns (address w) {
         (,, w,,,) = rewards.rounds(round);
     }
+}
 
+contract MadRewardsTest is MadRewardsFixture {
     function test_buyQuoteBoundsBlackoutAndRefundOverpayment() public {
         pool.setBlackout(true);
         vm.expectRevert(MadRewards.Blackout.selector);
