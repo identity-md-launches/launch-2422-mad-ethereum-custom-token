@@ -1,0 +1,34 @@
+{
+  "kind": "univ4_hook",
+  "hook": {
+    "contract": "MadHook",
+    "constructorArgs": [
+      "$poolManager",
+      "$token",
+      "$owner",
+      "$factory"
+    ],
+    "permissions": [
+      "beforeInitialize",
+      "beforeSwap",
+      "afterSwap",
+      "beforeSwapReturnDelta",
+      "afterSwapReturnDelta"
+    ]
+  },
+  "token": {
+    "contract": "MadToken",
+    "name": "Mutually Assured Destruction",
+    "symbol": "MAD",
+    "decimals": 18,
+    "constructorArgs": [],
+    "totalSupply": "1000000000000000000000000000"
+  },
+  "pool": {
+    "pairedCurrency": "0xa0df17b5ac76ababa36e1450e2cbcd18a620c845",
+    "fee": 12500,
+    "tickSpacing": 60,
+    "initialPrice": "79228162514264337593543950336"
+  },
+  "notes": "MadToken (MAD, 18 decimals) takes no constructor arguments and mints exactly 1,000,000,000 MAD (1e27 base units) once to msg.sender, the launch factory; nothing mints later and there is no transfer tax. Any holder may call freeze(target) on a nonzero non-caller wallet with no code or a 23-byte EIP-7702 designation: the caller pays floor(target balance / 100), burns floor(cost / 2) and pays the rest to the target, and the target cannot transfer, transferFrom, sell or add liquidity until now + 24 hours (another freeze resets, never adds). Full costs are tracked per round per caller; the highest total leads, ties going to the first to reach the total. Only the bound hook closes a round, at the current block, so round windows never overlap; hook.closeRound() also requires a round of at least 7,200 blocks and a leader spend of at least 1,000 MAD. bindHook() is a one-time binding that succeeds only inside the factory's atomic deploy-token, deploy-hook, initialize transaction (transient capability set in the token constructor) and only for a hook whose launchFactory and mad match. MadHook(IPoolManager $poolManager, IMadToken $token, address $owner, address $factory) deploys its own MadRewards helper in the constructor. getHookPermissions enables beforeInitialize, beforeSwap, afterSwap, beforeSwapReturnDelta and afterSwapReturnDelta; liquidity and donate callbacks are off, so the factory's zero-liquidity fee collection is never blocked. beforeInitialize accepts only the PoolManager as caller, the launch factory as initializer and the exact MAD/FWA key with LP fee 12500 and tick spacing 60, then binds the token. Swaps start closed for everyone, owner included; the owner enables trading once via enableTrading() and cannot close it again. The hook fee is charged on the FWA side only, once per swap, in both directions and for exact input and output: max(1%, 99% - 98% * elapsed / 1800) of the FWA base with explicit rounding. Of the base, 0.50% accrues as FWA ERC-6909 claims for the Playground receiver and 0.50% is sold for ETH on the official ETH/FWA pool inside the same unlock within owner-set bounds (unsold claims wait for the next swap); everything above 1% is taken from the PoolManager and burned via FWA.burn in the same swap when the manager holds that FWA, otherwise kept as a burn-only claim that public flushBurn() burns. Exact-output buys gross up the net FWA so every mode charges the same share; conversion is pre-checked and never reverts a MAD swap. There is no MAD protocol share. Public payout() burns only Playground claims and takes FWA from the PoolManager directly to the immutable receiver 0x4e2b3f2d201666d29bf1ce7aa665c8fdf768b481 (set in code, no setter); NFT and Playground budgets are separate. The owner only sets the ETH/FWA conversion pool, conversion bounds, FWA V2 acquisition bounds and oracle settings; there is no withdrawal, confiscation, mint, fee change or ownership transfer. MadRewards (deployed by the hook) buys NFTs via FWA V2 acquire with the NFT ETH budget, keeps them with claim(requestId), assigns the oldest kept NFT when hook.closeRound() closes a round with a leader, asks IMD's Intake v2 oracle (paid in donated IMD at the live price) who spent most MAD freezing in that round, verifies the signed attestation, and award(round) delivers the NFT to the oracle's answer or, with no answer after 72 hours, to the token's recorded leader. pool.initialPrice is the one-to-one placeholder; the deployer derives the opening price from the 2,000,000 FWA opening market cap."
+}
