@@ -49,7 +49,6 @@ export function Trade({
   });
   const stale = !!q && now - q.created > 30000;
   const closed = state && !state.enabled;
-  const empty = state && state.liquidity === 0n;
   const needsApproval = !!q && a.data && a.data.approval < q.input;
   const needsPermission =
     !!q &&
@@ -164,12 +163,6 @@ export function Trade({
               Trading is closed. Only the hook owner can open it, once.
             </Notice>
           )}
-          {empty && (
-            <Notice>
-              The pool has no active liquidity. Quotes and swaps are
-              unavailable.
-            </Notice>
-          )}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -229,7 +222,7 @@ export function Trade({
             </div>
             <button
               className="full-button"
-              disabled={loading || !!closed || !!empty || !state}
+              disabled={loading || !!closed || !state}
             >
               {loading ? "Reading quote…" : "Get current quote"}
               <Icon name="refresh" size={16} />

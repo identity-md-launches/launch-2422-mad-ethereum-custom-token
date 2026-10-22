@@ -730,7 +730,7 @@ main:focus {
   margin-block-end: 16px;
 }
 .reading h3 {
-  margin-block: 28px 0 12px;
+  margin-block: 28px 12px;
 }
 .reading p {
   color: var(--color-muted);

@@ -234,7 +234,7 @@ export function Rounds({
                     <dd>
                       {r.windows[0] === 0n
                         ? "Not started"
-                        : `${r.windows[0]} to ${r.windows[1] === 0n ? "open" : r.windows[1]}`}
+                        : `${r.windows[0].toLocaleString()} to ${r.windows[1] === 0n ? "open" : r.windows[1].toLocaleString()}`}
                     </dd>
                   </div>
                   <div>

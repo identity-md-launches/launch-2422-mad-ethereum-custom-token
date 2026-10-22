@@ -139,6 +139,7 @@ const fixture = {
   on: false,
   trading: true,
   liquidity: 10n ** 28n,
+  quoterReverts: false,
   mad: 10000n * 10n ** 18n,
   fwa: 1000n * 10n ** 18n,
   target: 1000n * 10n ** 18n,
@@ -247,6 +248,10 @@ function mockCall(tx) {
     if (f === "approve") return "0x";
   }
   if (c.key === "quoter" && f === "quoteExactInputSingle") {
+    if (fixture.quoterReverts)
+      throw Object.assign(new Error("execution reverted"), {
+        rpc: { code: 3, message: "execution reverted", data: "0x6190b2b0" },
+      });
     const q = arg[0];
     const sqrt = BigInt(dep.slot0[0]);
     const n = q.exactAmount;
@@ -621,10 +626,12 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(url + "#trade");
   await check(
-    "Actual closed trading and absent active liquidity disable quotes",
+    "Actual closed trading disables quotes without a liquidity pre-gate",
     async () => {
       await expect(page.locator("main")).toContainText("Trading is closed");
-      await expect(page.locator("main")).toContainText("no active liquidity");
+      await expect(page.locator("main")).not.toContainText(
+        "no active liquidity",
+      );
       await expect(
         page.getByRole("button", { name: "Get current quote" }),
       ).toBeDisabled();
@@ -912,6 +919,25 @@ try {
     await expect(primary).toBeDisabled();
     await w.clock.resume();
   });
+  await check(
+    "Zero in-range liquidity still quotes; a Quoter revert reads as insufficient liquidity",
+    async () => {
+      fixture.liquidity = 0n;
+      await w.getByRole("button", { name: "Get current quote" }).click();
+      await expect(w.locator(".quote")).toContainText("Minimum output", {
+        timeout: 30000,
+      });
+      fixture.quoterReverts = true;
+      await w.getByRole("button", { name: "Get current quote" }).click();
+      await expect(w.locator("main")).toContainText(
+        "Not enough liquidity in the pool for this amount.",
+        { timeout: 30000 },
+      );
+      assert.equal(await w.locator(".quote").count(), 0);
+      fixture.quoterReverts = false;
+      fixture.liquidity = 10n ** 28n;
+    },
+  );
 
   await w.goto(url + "#freeze");
   await w.fill("#freeze-target", TARGET);

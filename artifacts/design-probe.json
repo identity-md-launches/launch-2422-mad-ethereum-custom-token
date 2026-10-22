@@ -1,13 +1,13 @@
 {
   "probe": "Pinned taste@1",
-  "at": "2026-10-22T18:54:45.523Z",
+  "at": "2026-10-22T19:12:09.058Z",
   "target": "dist/",
   "checks": [
     {
       "name": "render",
       "passed": true,
       "exitCode": 0,
-      "durationMs": 11279,
+      "durationMs": 11088,
       "output": "renders, no script errors or missing local files\nexternal hosts: ethereum-rpc.publicnode.com"
     },
     {
@@ -28,7 +28,7 @@
       "name": "contrast",
       "passed": true,
       "exitCode": 0,
-      "durationMs": 1,
+      "durationMs": 0,
       "output": "all measured text meets 4.5:1 (3:1 large)"
     },
     {
@@ -49,14 +49,14 @@
       "name": "eyebrows",
       "passed": true,
       "exitCode": 0,
-      "durationMs": 0,
+      "durationMs": 1,
       "output": "no kicker labels above headings"
     },
     {
       "name": "type-sizes",
       "passed": true,
       "exitCode": 0,
-      "durationMs": 1,
+      "durationMs": 0,
       "output": "390: 4 sizes in use, 5 with one-offs (14px×23, 16px×5, 20px×3, 28px×2, 32px×1)\n1440: 4 sizes in use, 5 with one-offs (14px×29, 16px×6, 20px×3, 28px×1, 44px×2)\nbar: 6 sizes used more than once, 8 counting one-offs, per width"
     },
     {
@@ -112,7 +112,7 @@
       "name": "share",
       "passed": true,
       "exitCode": 0,
-      "durationMs": 1,
+      "durationMs": 0,
       "output": "title \"MAD · Mutually Assured Destruction\", favicon, og:title, og:image, description"
     }
   ],

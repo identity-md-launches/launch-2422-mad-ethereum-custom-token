@@ -1,7 +1,7 @@
 {
   "export": "dist/ under /preview/",
   "realTransactionsBroadcast": 0,
-  "rpcCalls": 240,
+  "rpcCalls": 113,
   "results": [
     {
       "name": "Live verified deployment reads and primary action at 390",
@@ -144,7 +144,7 @@
       "passed": true
     },
     {
-      "name": "Actual closed trading and absent active liquidity disable quotes",
+      "name": "Actual closed trading disables quotes without a liquidity pre-gate",
       "passed": true
     },
     {
@@ -216,6 +216,10 @@
       "passed": true
     },
     {
+      "name": "Zero in-range liquidity still quotes; a Quoter revert reads as insufficient liquidity",
+      "passed": true
+    },
+    {
       "name": "Pending receipt persists across reload and prevents duplicate sends",
       "passed": true
     },
@@ -238,7 +242,7 @@
     {
       "name": "WebKit launch",
       "passed": null,
-      "limitation": "WebKit could not launch because required system shared libraries were unavailable."
+      "limitation": "browserType.launch: Executable doesn't exist at /root/.cache/ms-playwright/webkit-2370/pw_run.sh\n╔════════════════════════════════════════════════════════════╗\n║ Looks like Playwright was just installed or updated.       ║\n║ Please run the following command to download new browsers: ║\n║                                                            ║\n║     npx playwright install                                 ║\n║                                                            ║\n║ <3 Playwright Team                                         ║\n╚════════════════════════════════════════════════════════════╝"
     }
   ]
 }

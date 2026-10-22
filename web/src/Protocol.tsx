@@ -90,7 +90,13 @@ export function Protocol({
           <Metric
             label="Current MAD supply"
             value={amount(state?.supply, "MAD")}
-            sub={state ? exact(state.supply, "MAD") : undefined}
+            sub={
+              state &&
+              exact(state.supply, "MAD") !==
+                amount(state.supply, "MAD").replace(/,/g, "")
+                ? exact(state.supply, "MAD")
+                : undefined
+            }
           />
           <Metric
             label="MAD burned by freezing"

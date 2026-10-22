@@ -1,4 +1,6 @@
 import {
+  BaseError,
+  ContractFunctionRevertedError,
   encodeAbiParameters,
   parseAbiParameters,
   type Address,
@@ -69,15 +71,8 @@ export async function quote(
     throw new Error("Choose a transaction deadline.");
   const started = Date.now();
   const block = await client.getBlock();
-  const [enabled, liquidity, slot, fee] = await Promise.all([
+  const [enabled, slot, fee] = await Promise.all([
     hook<boolean>("tradingEnabled", [], block.number),
-    read<bigint>(
-      ADDR.stateView,
-      stateAbi,
-      "getLiquidity",
-      [POOL_ID],
-      block.number,
-    ),
     read<readonly [bigint, number, number, number]>(
       ADDR.stateView,
       stateAbi,
@@ -89,20 +84,33 @@ export async function quote(
   ]);
   if (!enabled)
     throw new Error("Trading is closed. Only the hook owner can open it.");
-  if (!liquidity || !slot[0])
+  if (!slot[0])
     throw new Error(
-      "The MAD/FWA pool has no active liquidity. A quote is unavailable.",
+      "The MAD/FWA pool is not initialized. A quote is unavailable.",
     );
-  const simulation = await client.simulateContract({
-    address: ADDR.quoter,
-    abi: quoterAbi,
-    functionName: "quoteExactInputSingle",
-    blockNumber: block.number,
-    args: [
-      { poolKey: POOL, zeroForOne: !buy, exactAmount: input, hookData: "0x" },
-    ],
-  });
-  const [output] = simulation.result as readonly [bigint, bigint];
+  // In-range liquidity can be zero while a swap still fills by crossing into
+  // an adjacent position (the launch MAD sits just above the price), so the
+  // Quoter simulation decides.
+  let output: bigint;
+  try {
+    const simulation = await client.simulateContract({
+      address: ADDR.quoter,
+      abi: quoterAbi,
+      functionName: "quoteExactInputSingle",
+      blockNumber: block.number,
+      args: [
+        { poolKey: POOL, zeroForOne: !buy, exactAmount: input, hookData: "0x" },
+      ],
+    });
+    [output] = simulation.result as readonly [bigint, bigint];
+  } catch (e) {
+    if (
+      e instanceof BaseError &&
+      e.walk((x) => x instanceof ContractFunctionRevertedError)
+    )
+      throw new Error("Not enough liquidity in the pool for this amount.");
+    throw e;
+  }
   if (
     Date.now() - started > 30000 ||
     (await client.getBlockNumber()) > block.number + 2n
@@ -171,10 +179,6 @@ export async function validateQuote(q: Quote, account: Address) {
     (await token<bigint>("frozenUntil", [account])) > block.timestamp
   )
     throw new Error("This wallet is frozen and cannot sell MAD.");
-  if (
-    !(await read<bigint>(ADDR.stateView, stateAbi, "getLiquidity", [POOL_ID]))
-  )
-    throw new Error("No active pool liquidity.");
   const a = await allowances(account, q.buy ? ADDR.fwa : ADDR.token);
   if (a.balance < q.input) throw new Error("Insufficient input balance.");
   return a;
