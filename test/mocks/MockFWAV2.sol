@@ -84,6 +84,16 @@ contract MockFWAV2 is IFWAV2 {
         return acqs[id];
     }
 
+    /// @dev Allocate an NFT its previous winner has resold to the pool, under a new request.
+    function fulfillExisting(uint256 requestId, uint256 tokenId) external {
+        Acquisition storage a = acqs[requestId];
+        require(a.status == 1 && nft.ownerOf(tokenId) == address(this));
+        a.status = 2;
+        a.listingId = requestId;
+        listed[requestId] =
+            Listing(address(nft), address(this), a.purchaser, tokenId, 1, 1 ether, 0, 0, 0, uint64(block.timestamp), 2);
+    }
+
     function listings(uint256 id) external view returns (Listing memory) {
         return listed[id];
     }
