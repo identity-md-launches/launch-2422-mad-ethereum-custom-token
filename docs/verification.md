@@ -8,7 +8,7 @@ The delivered contracts are `MadToken`, `MadHook` and the hook-created `MadRewar
 | --- | --- |
 | `forge build --sizes`, Solidity 0.8.26 | Passed |
 | `forge build --force --offline` | Passed: all 122 compiled source files resolve from the repository and the installed pinned compiler |
-| `forge test` | 58 passed, zero failed, one mainnet-fork setup skipped |
+| `forge test` | 68 passed, zero failed, one mainnet-fork setup skipped |
 | `forge fmt --check` | Passed |
 | Fuzz seed | `0x7b449c27e8d50466ace5b9f57d7bf19b1d42679e5c0f653bb6cc6a4488b06a52`, pinned in `foundry.toml` |
 | Fuzz cases | 256 runs per fuzz test; token cost conservation and all fee modes, including both currency orderings |
@@ -25,20 +25,20 @@ Runtime sizes with the pinned build:
 
 | Contract | Runtime bytes | Creation bytes, excluding constructor arguments |
 | --- | ---: | ---: |
-| MadToken | 4,013 | 5,115 |
-| MadHook | 10,979 | 32,517 |
+| MadToken | 3,992 | 5,094 |
+| MadHook | 12,769 | 34,314 |
 | MadRewards | 18,648 | 20,228 |
 
 All are below the 24,576-byte runtime and 49,152-byte creation limits, including their respective constructor arguments. Libraries called by production code are internal and leave no link placeholders.
 
 ## Behavioral coverage
 
-- Both MAD/FWA orderings, both directions, exact input and exact output; closed owner trading and owner-only irreversible opening; decay at 0/15/30 minutes and fuzzed intermediate seconds; fee base, burn and rounding; no duplicate callback fees.
-- Real PoolManager accounting through claim mint/burn, swaps, direct payout and unlock redemption. NFT-only conversion with a market fee, price-bound partial fill, unsold-claim retry, minimum-output failure, stale bounds and an empty native balance. The official-market **mock** mints its own ETH fee claim so that the MAD ETH-claim branch can be tested independently; this does not prove the live market hook will tolerate an empty native reserve.
+- Both MAD/FWA orderings, both directions, exact input and exact output; closed owner trading and owner-only irreversible opening; decay at 0/15/30 minutes and fuzzed intermediate seconds; fee base, burn and rounding; no duplicate callback fees; exact-output buy route parity with the exact-input buy at 99% and 50%; a burn larger than the manager's FWA reserves deferred to a claim and flushed.
+- Real PoolManager accounting through claim mint/burn, swaps, direct payout and unlock redemption. NFT-only conversion with a market fee, price-bound partial fill, unsold-claim retry, inconsistent bounds rejected, stale bounds, a market parked one unit under the bound and dust shares deferring without failing any swap, and an empty native balance. The official-market **mock** mints its own ETH fee claim so that the MAD ETH-claim branch can be tested independently; this does not prove the live market hook will tolerate an empty native reserve.
 - Equal 0.50% shares, no MAD tax, direct PoolManager → receiver FWA transfer, no adapter/hub dependency, idempotent payout and no cross-use of NFT claims.
-- Supply and transfer behavior; freeze payment, burn/remainder, receive permission, frozen payer, reset deadlines, allowances, pool sales, liquidity additions and an unrelated unhooked pool. EIP-7702 `vm.etch` designation, ordinary code including 23-byte code, zero/self/contract targets, zero cost, lack of funds, cumulative ties and adjacent block windows.
+- Supply and transfer behavior; freeze payment, burn/remainder, receive permission, frozen payer, reset deadlines, allowances, pool sales, liquidity additions and an unrelated unhooked pool. EIP-7702 `vm.etch` designation, ordinary code including 23-byte code, a frozen counterfactual address that deploys code inside the window, zero/self/contract targets, zero cost, lack of funds, cumulative ties and adjacent block windows.
 - Real mined CREATE2 atomic launch and a spoofed late binder in the same block but a later transaction. Token constructor and initialization must share a factory call.
-- Live V2 quote/blackout interfaces, immediate overpayment, refund credits, old-pool requests after a configuration change, settlement deadlines and retry after failed keep. Queue ordering follows successful keep time.
+- Live V2 quote/blackout interfaces, immediate overpayment, refund credits, old-pool requests after a configuration change, settlement deadlines and retry after failed keep. Queue ordering follows successful keep time. Minimum round length and minimum leader spend before a round can close.
 - Oracle price changes, insufficient funding, exact temporary approvals, eight-block confirmation depth, wrong callback sender/request/hash/chain/window/panel, malformed/tampered/expired signatures, future issuance, zero answer, signed-UUID replay, failure retry and six-hour timeout/supersession.
 - No asset movement in a callback; 72-hour fallback; late-answer rejection; safe-transfer refusal and retry; reentrant winner callback; immutable beneficiary after a failed attempt; no duplicate award.
 

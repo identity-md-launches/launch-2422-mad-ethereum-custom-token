@@ -5,7 +5,9 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Hooks} from "v4-core/src/libraries/Hooks.sol";
 import {TickMath} from "v4-core/src/libraries/TickMath.sol";
+import {SqrtPriceMath} from "v4-core/src/libraries/SqrtPriceMath.sol";
 import {StateLibrary} from "v4-core/src/libraries/StateLibrary.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPoolManager} from "v4-core/src/interfaces/IPoolManager.sol";
 import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
 import {IUnlockCallback} from "v4-core/src/interfaces/callback/IUnlockCallback.sol";
@@ -34,7 +36,6 @@ contract MadHook is ReentrancyGuard, IUnlockCallback {
     error AlreadyInitialized();
     error InvalidSwap();
     error PartialSpecifiedFill();
-    error Slippage();
     error NoRoundReward();
     error InvalidUnlock();
 
@@ -45,10 +46,18 @@ contract MadHook is ReentrancyGuard, IUnlockCallback {
     event NFTConverted(uint256 sold, uint256 ethReceived, uint256 unsold);
     event PlaygroundPaid(uint256 amount);
     event NFTEthRedeemed(uint256 amount);
+    event BurnDeferred(uint256 amount);
+    event BurnFlushed(uint256 amount);
 
     address public constant FWA = 0xa0Df17B5aC76ABaBA36E1450E2cbCd18A620C845;
     address public immutable receiver = 0x4E2B3F2D201666d29bf1CE7aA665C8fdF768b481;
     uint256 public constant RATE_DENOMINATOR = 10_000 * 1800;
+    /// @notice NFT FWA claims below this, or a market with less room than this before the bound, wait.
+    uint256 public constant MIN_CONVERSION = 1e12;
+    /// @notice A round spans at least this many blocks (about one day) before it can be closed.
+    uint256 public constant MIN_ROUND_BLOCKS = 7200;
+    /// @notice The leader must have spent at least this much MAD freezing wallets for the round to close.
+    uint256 public constant MIN_LEADER_SPEND = 1000 ether;
     uint160 public constant HOOK_FLAGS = (1 << 13) | (1 << 7) | (1 << 6) | (1 << 3) | (1 << 2);
     IPoolManager public immutable poolManager;
     IMadToken public immutable mad;
@@ -67,6 +76,7 @@ contract MadHook is ReentrancyGuard, IUnlockCallback {
     uint256 public playgroundClaims;
     uint256 public nftFwaClaims;
     uint256 public nftEthClaims;
+    uint256 public burnClaims;
     bool private swapActive;
     bytes32 private swapContext;
     uint256 private expectedSpecifiedFwa;
@@ -165,12 +175,22 @@ contract MadHook is ReentrancyGuard, IUnlockCallback {
     }
 
     function setConversionBounds(uint160 limit, uint256 minimumEthPerFwaX128) external onlyOwner nonReentrant {
-        if (limit <= TickMath.MIN_SQRT_PRICE || limit >= TickMath.MAX_SQRT_PRICE || minimumEthPerFwaX128 == 0) {
-            revert InvalidConfig();
-        }
+        // The bound already caps the execution price: the minimum must be consistent with it. The
+        // market's own hook fee and rounding come off on top of the price at the bound.
+        if (
+            limit <= TickMath.MIN_SQRT_PRICE || limit >= TickMath.MAX_SQRT_PRICE || minimumEthPerFwaX128 == 0
+                || ethPerFwaX128(limit) < minimumEthPerFwaX128
+        ) revert InvalidConfig();
         sqrtPriceLimitX96 = limit;
         minEthPerFwaX128 = minimumEthPerFwaX128;
         emit ConversionBoundsSet(limit, minimumEthPerFwaX128);
+    }
+
+    /// @notice Native ETH per FWA base unit at a sqrt price of the ETH/FWA market, scaled by 2^128.
+    function ethPerFwaX128(uint160 sqrtPriceX96) public pure returns (uint256) {
+        if (sqrtPriceX96 <= TickMath.MIN_SQRT_PRICE) revert InvalidConfig();
+        uint256 inverse = (1 << 224) / sqrtPriceX96;
+        return Math.mulDiv(inverse, inverse, 1 << 128);
     }
 
     function _checkPool(PoolKey calldata key) private view {
@@ -234,8 +254,16 @@ contract MadHook is ReentrancyGuard, IUnlockCallback {
         if (_fwaSpecified(key, params)) {
             // A specified-side delta cannot be refunded in afterSwap. Refuse an underfill atomically.
             if (base != expectedSpecifiedFwa) revert PartialSpecifiedFill();
+        } else if (fwaDelta < 0) {
+            // Exact-output buy: the pool consumed NET FWA. Gross up so the fee is the schedule's share
+            // of everything the trader pays, exactly as on the other three routes.
+            uint256 rate = feeNumerator();
+            fee = Math.mulDiv(base, rate, RATE_DENOMINATOR - rate, Math.Rounding.Ceil);
+            if (fee > uint256(uint128(type(int128).max))) revert InvalidSwap();
+            base += fee;
+            _collect(base, fee);
         } else {
-            fee = feeFor(base); // floor of actual FWA exchanged by the pool
+            fee = feeFor(base); // exact-input sell: floor of the gross FWA output the pool produced
             _collect(base, fee);
         }
         swapActive = false;
@@ -254,31 +282,43 @@ contract MadHook is ReentrancyGuard, IUnlockCallback {
             poolManager.mint(address(this), fwa.toId(), 2 * share);
         }
         if (burned != 0) {
-            poolManager.take(fwa, address(this), burned);
-            IFWABurn(FWA).burn(burned);
+            // A take is paid from what the manager already holds; a post-settling router has not
+            // paid the input yet. Keep the burn as a claim rather than failing a valid trade.
+            if (IERC20(FWA).balanceOf(address(poolManager)) >= burned) {
+                poolManager.take(fwa, address(this), burned);
+                IFWABurn(FWA).burn(burned);
+            } else {
+                burnClaims += burned;
+                poolManager.mint(address(this), fwa.toId(), burned);
+                emit BurnDeferred(burned);
+            }
         }
         emit FeeCharged(base, fee, share, share, burned);
         _convertNFT();
     }
 
+    /// @dev Decides before selling and never fails the trader's swap on the outcome: whatever does
+    /// not sell within the owner's bound waits as a claim for a later swap.
     function _convertNFT() private {
         uint256 available = nftFwaClaims;
         uint160 limit = sqrtPriceLimitX96;
-        if (available == 0 || limit == 0) return;
+        if (available < MIN_CONVERSION || limit == 0) return;
         PoolKey memory market = ethFwaPool;
-        (uint160 current,,,) = poolManager.getSlot0(market.toId());
+        PoolId marketId = market.toId();
+        (uint160 current,,,) = poolManager.getSlot0(marketId);
         // Sells move the native/FWA sqrt price upwards. A stale bound retains claims for a later swap.
-        if (current == 0 || current >= limit) return;
+        if (current == 0 || current >= limit || ethPerFwaX128(limit) < minEthPerFwaX128) return;
+        // FWA the in-range liquidity absorbs before the bound. A price parked just under the bound
+        // or an empty range would fill rounding dust for nothing: defer instead.
+        uint128 liquidity = poolManager.getLiquidity(marketId);
+        if (liquidity == 0 || SqrtPriceMath.getAmount1Delta(current, limit, liquidity, false) < MIN_CONVERSION) {
+            return;
+        }
         uint256 offered = Math.min(available, uint256(uint128(type(int128).max)));
         BalanceDelta d = poolManager.swap(market, SwapParams(false, -int256(offered), limit), "");
         if (d.amount1() > 0 || d.amount0() < 0) revert InvalidSwap();
         uint256 sold = uint256(-int256(d.amount1()));
         uint256 proceeds = uint256(int256(d.amount0()));
-        if (
-            sold > offered
-                || (sold > 0
-                    && (proceeds == 0 || proceeds < Math.mulDiv(sold, minEthPerFwaX128, 1 << 128, Math.Rounding.Ceil)))
-        ) revert Slippage();
         if (sold != 0) {
             nftFwaClaims = available - sold;
             poolManager.burn(address(this), Currency.wrap(FWA).toId(), sold);
@@ -313,6 +353,17 @@ contract MadHook is ReentrancyGuard, IUnlockCallback {
         _redeemNftETH(nftEthClaims);
     }
 
+    /// @notice Burns FWA whose same-swap burn was deferred because the manager held too little FWA.
+    function flushBurn() external nonReentrant returns (uint256 amount) {
+        amount = burnClaims;
+        if (amount == 0) return 0;
+        burnClaims = 0;
+        unlockOperation = 3;
+        poolManager.unlock(abi.encode(amount));
+        unlockOperation = 0;
+        emit BurnFlushed(amount);
+    }
+
     function _redeemNftETH(uint256 amount) private {
         if (amount == 0) return;
         nftEthClaims -= amount;
@@ -331,6 +382,11 @@ contract MadHook is ReentrancyGuard, IUnlockCallback {
         } else if (unlockOperation == 2) {
             poolManager.burn(address(this), 0, amount);
             poolManager.take(Currency.wrap(address(0)), address(rewards), amount);
+        } else if (unlockOperation == 3) {
+            Currency fwa = Currency.wrap(FWA);
+            poolManager.burn(address(this), fwa.toId(), amount);
+            poolManager.take(fwa, address(this), amount);
+            IFWABurn(FWA).burn(amount);
         } else {
             revert InvalidUnlock();
         }
@@ -339,7 +395,13 @@ contract MadHook is ReentrancyGuard, IUnlockCallback {
 
     function closeRound() external nonReentrant returns (uint256 round) {
         round = mad.currentRound();
-        if (mad.leader(round) == address(0) || !rewards.hasUnassignedNFT()) revert NoRoundReward();
+        address lead = mad.leader(round);
+        (uint64 first,) = mad.roundBlocks(round);
+        // A one-block round led by a dust freeze must not capture an NFT bought with trading fees.
+        if (
+            lead == address(0) || mad.spent(round, lead) < MIN_LEADER_SPEND
+                || block.number + 1 < uint256(first) + MIN_ROUND_BLOCKS || !rewards.hasUnassignedNFT()
+        ) revert NoRoundReward();
         mad.closeRound();
         rewards.assignRound(round);
     }

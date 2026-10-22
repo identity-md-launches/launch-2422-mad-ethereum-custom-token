@@ -8,6 +8,7 @@ interface IMadToken {
     function currentRound() external view returns (uint256);
     function roundBlocks(uint256 round) external view returns (uint64 first, uint64 last);
     function leader(uint256 round) external view returns (address);
+    function spent(uint256 round, address account) external view returns (uint256);
 }
 
 interface IMadBinding {

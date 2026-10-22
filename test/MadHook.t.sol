@@ -134,6 +134,11 @@ contract MadHookTest is MadTestBase {
         if (!buyMad && !exactInput) {
             assertEq(fee, Math.mulDiv(amount, rate, den - rate, Math.Rounding.Ceil));
             assertEq(base, amount + fee);
+        } else if (buyMad && !exactInput) {
+            // Gross-up of the net FWA the pool consumed: fee / gross == schedule, like every other route.
+            assertEq(fee, Math.mulDiv(base - fee, rate, den - rate, Math.Rounding.Ceil));
+            assertLe(base * rate / den, fee);
+            assertLe(fee - base * rate / den, 2);
         } else {
             assertEq(fee, Math.mulDiv(base, rate, den));
         }
@@ -142,7 +147,7 @@ contract MadHookTest is MadTestBase {
             assertEq(base, amount);
             assertEq(-int256(fwaD), int256(amount));
         } else if (buyMad) {
-            assertEq(-int256(fwaD), int256(base + fee));
+            assertEq(-int256(fwaD), int256(base), "trader pays exactly the gross FWA base");
         } else {
             assertEq(int256(fwaD), int256(base - fee));
         }
@@ -155,6 +160,28 @@ contract MadHookTest is MadTestBase {
         assertEq(token.totalSupply(), madSupply, "no MAD protocol tax");
         assertEq(fwa.balanceOf(address(hook)), 0, "burn immediately");
         assertEq(manager.balanceOf(address(hook), uint160(FWA)), hook.playgroundClaims() + hook.nftFwaClaims());
+    }
+
+    function _buy(int256 amount) internal returns (uint256 fwaPaid, uint256 madReceived) {
+        uint256 f0 = fwa.balanceOf(ALICE);
+        uint256 m0 = token.balanceOf(ALICE);
+        _swap(true, amount);
+        fwaPaid = f0 - fwa.balanceOf(ALICE);
+        madReceived = token.balanceOf(ALICE) - m0;
+    }
+
+    function test_exactOutputBuyPaysTheSameScheduleAsExactInputBuy() public {
+        _open(0);
+        (uint256 paidIn, uint256 madIn) = _buy(-100 ether);
+        assertEq(hook.feeFor(paidIn), 99 ether);
+        (uint256 paidOut, uint256 madOut) = _buy(int256(madIn));
+        assertEq(madOut, madIn);
+        assertApproxEqRel(paidOut, paidIn, 0.001e18, "same MAD costs the same gross FWA on either route");
+        vm.warp(hook.openedAt() + 900);
+        (paidIn, madIn) = _buy(-100 ether);
+        (paidOut, madOut) = _buy(int256(madIn));
+        assertEq(madOut, madIn);
+        assertApproxEqRel(paidOut, paidIn, 0.001e18, "50% route parity");
     }
 
     function test_payoutDirectFromManagerSeparateAndIdempotentBeforeSetup() public {
@@ -230,21 +257,86 @@ contract MadHookTest is MadTestBase {
         assertEq(address(rewards).balance, claims);
     }
 
-    function test_conversionMinOutputFailureAtomicAndStaleLimitDefers() public {
+    function test_inconsistentMinimumRejectedAndStaleLimitDefers() public {
         _market(Q96 * 2);
         _open(1800);
+        // 2 ETH per FWA cannot be guaranteed by a bound whose price is 0.25 ETH per FWA.
+        assertEq(hook.ethPerFwaX128(Q96 * 2), 1 << 126);
+        assertEq(hook.ethPerFwaX128(Q96), 1 << 128);
         vm.prank(OWNER);
+        vm.expectRevert(MadHook.InvalidConfig.selector);
         hook.setConversionBounds(Q96 * 2, 2 << 128);
-        uint256 supply = fwa.totalSupply();
-        vm.expectRevert();
-        _swap(true, -1000 ether);
-        assertEq(fwa.totalSupply(), supply);
-        assertEq(hook.playgroundClaims(), 0);
         vm.prank(OWNER);
         hook.setConversionBounds(Q96 - 1, 1 << 126);
         _swap(true, -1000 ether);
         assertEq(hook.nftFwaClaims(), 5 ether);
         assertEq(address(rewards).balance, 0);
+        assertEq(MockMarketHook(MARKET_HOOK).swaps(), 0);
+    }
+
+    function _parkMarket(uint160 target) internal {
+        router.swap(market, SwapParams(false, -1_000_000 ether, target));
+        (uint160 current,,,) = StateLibrary.getSlot0(manager, market.toId());
+        assertEq(current, target);
+    }
+
+    function test_parkedMarketPriceDefersConversionInsteadOfFailingTrades() public {
+        _market(Q96 * 2);
+        _open(1800);
+        _swap(true, -1000 ether);
+        assertEq(hook.nftFwaClaims(), 0);
+        uint256 budget = address(rewards).balance;
+        // Any FWA holder can leave the official market one unit under the owner's bound.
+        _parkMarket(Q96 * 2 - 1);
+        _swap(true, -1000 ether);
+        assertEq(hook.nftFwaClaims(), 5 ether, "claims wait for a later swap");
+        _swap(false, -1000 ether);
+        assertGt(hook.nftFwaClaims(), 5 ether);
+        _swap(true, 1 ether);
+        _swap(false, 1 ether);
+        assertEq(address(rewards).balance, budget);
+        assertEq(MockMarketHook(MARKET_HOOK).swaps(), 2, "one conversion plus the parking swap");
+        // Once the bound again lies above the market, the waiting claims sell on the next swap.
+        vm.prank(OWNER);
+        hook.setConversionBounds(Q96 * 3, 1 << 124);
+        _swap(true, -1000 ether);
+        assertEq(hook.nftFwaClaims(), 0);
+        assertGt(address(rewards).balance, budget);
+        assertEq(MockMarketHook(MARKET_HOOK).swaps(), 3);
+    }
+
+    function test_dustShareNeverFailsASwap() public {
+        _market(Q96 * 2);
+        _open(1800);
+        uint256 nft = hook.nftFwaClaims();
+        _swap(true, -300);
+        assertEq(hook.nftFwaClaims(), nft + 1);
+        assertEq(MockMarketHook(MARKET_HOOK).swaps(), 0);
+        _parkMarket(Q96 * 2 - 1);
+        _swap(true, -300);
+        assertEq(hook.nftFwaClaims(), nft + 2);
+    }
+
+    function test_largeBuyAtOpenDefersBurnUntilFlushed() public {
+        _open(0);
+        uint256 reserve = fwa.balanceOf(address(manager));
+        fwa.mint(ALICE, reserve * 10);
+        uint256 burnedBefore = fwa.burned();
+        _swap(true, -int256(reserve * 3));
+        uint256 deferred = hook.burnClaims();
+        assertGt(deferred, reserve);
+        assertEq(fwa.burned(), burnedBefore);
+        assertEq(
+            manager.balanceOf(address(hook), uint160(FWA)),
+            hook.playgroundClaims() + hook.nftFwaClaims() + deferred,
+            "burn claims are tracked apart from revenue claims"
+        );
+        assertEq(hook.flushBurn(), deferred);
+        assertEq(hook.burnClaims(), 0);
+        assertEq(fwa.burned(), burnedBefore + deferred);
+        assertEq(fwa.balanceOf(address(hook)), 0);
+        assertEq(hook.flushBurn(), 0);
+        assertEq(manager.balanceOf(address(hook), uint160(FWA)), hook.playgroundClaims() + hook.nftFwaClaims());
     }
 
     function test_partialMainSpecifiedSwapRevertsInsteadOfChargingUnspentInput() public {

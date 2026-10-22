@@ -106,8 +106,10 @@ contract MadToken is ERC20 {
     }
 
     function _update(address from, address to, uint256 amount) internal override {
-        // Code deployed at a previously empty address is not a freezeable wallet.
-        if (from != address(0) && frozenUntil[from] > block.timestamp && isWallet(from)) {
+        // Only wallets can be frozen (freeze checks the code at that time). A contract deployed at a
+        // frozen counterfactual address afterwards stays frozen for the remainder of the window, so
+        // deploying code is not an escape from a freeze that was paid for.
+        if (from != address(0) && frozenUntil[from] > block.timestamp) {
             revert WalletFrozen(from, frozenUntil[from]);
         }
         super._update(from, to, amount);

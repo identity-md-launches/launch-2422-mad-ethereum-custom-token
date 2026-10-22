@@ -72,7 +72,11 @@ contract MadInvariantTest is MadTestBase {
     }
 
     function invariant_claimBudgetsNeverMixOrDoublePay() public view {
-        assertEq(manager.balanceOf(address(hook), uint160(FWA)), hook.playgroundClaims() + hook.nftFwaClaims());
+        assertEq(
+            manager.balanceOf(address(hook), uint160(FWA)),
+            hook.playgroundClaims() + hook.nftFwaClaims() + hook.burnClaims()
+        );
+        assertEq(hook.burnClaims(), 0, "the seeded manager always covers these burns in the same swap");
         assertEq(handler.earnedPlayground(), hook.playgroundClaims() + handler.paidPlayground());
         assertEq(handler.earnedPlayground(), hook.nftFwaClaims());
         assertEq(fwa.balanceOf(hook.receiver()), handler.paidPlayground());

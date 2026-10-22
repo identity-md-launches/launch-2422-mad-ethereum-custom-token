@@ -174,6 +174,28 @@ contract MadTokenTest is MadTestBase {
         token.freeze(wrong);
     }
 
+    function test_frozenCounterfactualAddressStaysFrozenAfterDeployingCode() public {
+        address counterfactual = makeAddr("counterfactual");
+        token.transfer(counterfactual, 1000 ether);
+        vm.prank(BOB);
+        token.freeze(counterfactual);
+        uint64 until = token.frozenUntil(counterfactual);
+        vm.prank(counterfactual);
+        vm.expectRevert(abi.encodeWithSelector(MadToken.WalletFrozen.selector, counterfactual, until));
+        token.transfer(CAROL, 1);
+        vm.etch(counterfactual, address(router).code); // the CREATE2 deployment lands inside the window
+        assertFalse(token.isWallet(counterfactual));
+        vm.prank(counterfactual);
+        vm.expectRevert(abi.encodeWithSelector(MadToken.WalletFrozen.selector, counterfactual, until));
+        token.transfer(CAROL, 1);
+        vm.prank(ALICE);
+        vm.expectRevert(MadToken.InvalidTarget.selector);
+        token.freeze(counterfactual); // a contract can never be frozen again
+        vm.warp(until);
+        vm.prank(counterfactual);
+        token.transfer(CAROL, 1);
+    }
+
     function test_tiesAndRoundBoundary() public {
         address t1 = makeAddr("t1");
         address t2 = makeAddr("t2");

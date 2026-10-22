@@ -41,6 +41,8 @@ contract MadRewardsTest is MadTestBase {
         _keep();
         vm.prank(ALICE);
         token.freeze(BOB);
+        (uint64 first,) = token.roundBlocks(token.currentRound());
+        vm.roll(uint256(first) + hook.MIN_ROUND_BLOCKS() - 1);
         round = hook.closeRound();
         vm.roll(block.number + 8);
     }
@@ -173,6 +175,7 @@ contract MadRewardsTest is MadTestBase {
     }
 
     function test_closeRequiresLeaderAndNftAssignsOldestKeptOnly() public {
+        vm.roll(100 + hook.MIN_ROUND_BLOCKS());
         vm.expectRevert(MadHook.NoRoundReward.selector);
         hook.closeRound();
         uint256 first = hook.buy();
@@ -192,7 +195,7 @@ contract MadRewardsTest is MadTestBase {
         assertEq(id, second);
         vm.expectRevert();
         hook.closeRound();
-        vm.roll(block.number + 1);
+        vm.roll(block.number + hook.MIN_ROUND_BLOCKS());
         vm.prank(ALICE);
         token.freeze(BOB);
         hook.closeRound();
@@ -202,6 +205,40 @@ contract MadRewardsTest is MadTestBase {
         assertEq(id, first);
         vm.expectRevert(MadRewards.Unauthorized.selector);
         rewards.assignRound(3);
+    }
+
+    function test_dustFreezeAndShortRoundCannotCaptureAnNFT() public {
+        _keep();
+        _keep();
+        address victim = makeAddr("victim");
+        address sniper = makeAddr("sniper");
+        token.transfer(victim, 100);
+        token.transfer(sniper, 1);
+        vm.prank(sniper);
+        token.freeze(victim); // 1 wei: the sniper leads an otherwise empty round
+        assertEq(token.leader(1), sniper);
+        (uint64 first,) = token.roundBlocks(1);
+        vm.roll(uint256(first) + hook.MIN_ROUND_BLOCKS() - 1);
+        vm.expectRevert(MadHook.NoRoundReward.selector);
+        hook.closeRound(); // long enough, but the leader's spend is below the floor
+        vm.prank(ALICE);
+        token.freeze(BOB); // 10,000 MAD
+        vm.roll(vm.getBlockNumber() - 1);
+        vm.expectRevert(MadHook.NoRoundReward.selector);
+        hook.closeRound(); // real spend, but the round is one block short
+        vm.roll(vm.getBlockNumber() + 1);
+        assertEq(hook.closeRound(), 1);
+        (uint64 openedAt, uint64 closedAt) = token.roundBlocks(1);
+        assertEq(uint256(closedAt) - uint256(openedAt) + 1, hook.MIN_ROUND_BLOCKS());
+        (uint256 index,,,,,) = rewards.rounds(1);
+        assertEq(index, 1);
+        // The next round cannot be ended in its first block by the same trick.
+        vm.roll(vm.getBlockNumber() + 1);
+        vm.prank(ALICE);
+        token.freeze(BOB);
+        vm.expectRevert(MadHook.NoRoundReward.selector);
+        hook.closeRound();
+        assertTrue(rewards.hasUnassignedNFT());
     }
 
     function test_questionExactBodyLivePriceAndEightConfirmations() public {
@@ -224,7 +261,7 @@ contract MadRewardsTest is MadTestBase {
         assertEq(q.answerType, 4);
         assertEq(q.head, 1);
         assertEq(q.fromBlock, 100);
-        assertEq(q.toBlock, 100);
+        assertEq(q.toBlock, 100 + hook.MIN_ROUND_BLOCKS() - 1);
         assertFalse(q.panelEvidence);
         assertTrue(_contains(string(body), '"panelSize":30,"quorum":20,"validForSeconds":3600,"evidence":"chain"'));
         assertTrue(_contains(q.question, "Ties: first to reach that total in block/transaction/log order."));
