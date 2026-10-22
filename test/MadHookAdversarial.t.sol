@@ -212,8 +212,16 @@ contract MadConversionHandler is Test {
     function setLimit(uint8 choice) external {
         (uint160 price,,,) = manager.getSlot0(market.toId());
         uint160 limit = choice % 3 == 0 ? price : choice % 3 == 1 ? price + price / 100_000 : price * 2;
+        // The minimum may not exceed the price the bound itself allows; take the stricter of the two.
+        uint256 atBound = hook.ethPerFwaX128(limit);
+        uint256 minimum = atBound < 1 << 126 ? atBound : 1 << 126;
+        if (atBound < type(uint256).max) {
+            vm.prank(owner);
+            vm.expectRevert(MadHook.InvalidConfig.selector);
+            hook.setConversionBounds(limit, atBound + 1);
+        }
         vm.prank(owner);
-        hook.setConversionBounds(limit, 1 << 126);
+        hook.setConversionBounds(limit, minimum);
     }
 
     function payout() external {

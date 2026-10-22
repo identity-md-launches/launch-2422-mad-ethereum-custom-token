@@ -9,6 +9,7 @@ dependency is needed.
 | `MadTokenAdversarial.t.sol` | Failed second freeze debit restores the burn and spending records; one-wei minimum cost; frozen finite-allowance rollback and exact expiry; approval cannot pay another caller's freeze; EIP-7702 length/prefix, delegation change and revocation. |
 | `MadRewardsAdversarial.t.sol` | Independent canonical question document and JSON parsing; cold-state callback under 200,000 gas; malformed signed answers; wrong consumer domain; Intake and signer changes; retry rollback at a price ceiling; exact fallback boundary; malformed acquisition data and missing NFT delivery; live settlement window; unsolicited/duplicate NFTs; acquisition reentrancy during award; resale and repurchase without reopening an awarded round. |
 | `MadHookAdversarial.t.sol` | Failed FWA payout and native redemption roll back claims; FWA payout remains independent of native liquidity; market changes reset conversion permission; invalid bounds and oversized swaps; small-amount fee rounding and monotonic decay. |
+| `MadBurnDeferral.t.sol` | Revised paths: buys too large for the manager's FWA balance defer the above-1% burn to a separate claim, which payout never pays and an anyone-callable `flushBurn` destroys exactly once; exact-output buys and sells charge exactly `ceil(rate × gross FWA)` (fuzzed over the decay), with a pinned 1% rounding case. |
 | `MadRewardsInvariant.t.sol` | Purchases, overpayment refunds, draw refunds, claiming, closing, asking, failures, timeouts, callbacks and awards preserve ETH/IMD accounting, NFT custody and final round results. |
 
 ## Random sequences
@@ -70,14 +71,20 @@ MAINNET_RPC_URL=<ethereum-rpc> forge test --match-path test/MainnetFork.t.sol --
 `test/scratch/` contains only local build products/logs and is not part of the
 submission. None of the delivered tests imports it or relies on its contents.
 
+## Revision after the implementation update
+
+The implementation changed after the previous round: closing now needs a minimum round length and leader spend, the conversion minimum is now only checked against the bound, and exact-output buys are grossed up. Five tests broke and were updated to the new rules. One example is the oracle question window, which now ends at `first + MIN_ROUND_BLOCKS - 1`. Three issues are reported in `.imd-findings.json` instead of being asserted as correct:
+
+- **Medium:** `closeRound` adds `MIN_ROUND_BLOCKS` and `MIN_LEADER_SPEND`, which are not in the brief. Tests here only roll forward far enough to meet them.
+- **Low:** `minEthPerFwaX128` is no longer enforced on the ETH the sale actually returns. A 50% market-hook fee sold 1 FWA for 0.4995 ETH against a configured minimum of 0.998 ETH per FWA, and nothing reverted.
+- **Info:** a deferred burn is not in the same swap. Its accounting is covered by the new invariant suite.
+
 ## Verification result
 
-On 2026-10-21 with Forge 1.8.3 and the supplied seed:
+On 2026-10-22 with the supplied seed, against the revised implementation:
 
 - `forge build`: passed.
-- Full default `forge test`: 95 passed, 0 failed, 1 optional fork suite skipped.
-- Explicit Ethereum fork run: 2 passed, 0 failed, 0 skipped.
-- Each added invariant campaign: 256 sequences, 20,480 calls, no unexpected reverts.
-- Scope check and `git diff --check`: passed; all seven changed files are under `test/`.
-
-No reproducible implementation defect was found in these checks.
+- Full default `forge test`: 109 passed, 0 failed, 1 optional fork suite skipped.
+- The fork suite was not re-run in this revision: there was no `MAINNET_RPC_URL`. The 2026-10-21 fork run predates the implementation change, so live fork coverage of the revised hook is still owed.
+- Burn-deferral invariant: 256 sequences, 15,360 calls, no reverts. The other invariant campaigns are unchanged in size.
+- Every changed file is under `test/`. Findings are in `.imd-findings.json`.

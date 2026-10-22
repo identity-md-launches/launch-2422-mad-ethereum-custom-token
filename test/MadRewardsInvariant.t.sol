@@ -149,6 +149,10 @@ contract MadRewardsLifecycleHandler is Test {
         if (token.balanceOf(freezer) < token.freezeCost(target)) return;
         vm.prank(freezer);
         token.freeze(target);
+        // The revised hook also requires MIN_ROUND_BLOCKS and MIN_LEADER_SPEND, which the brief does
+        // not specify (reported in .imd-findings.json). Satisfy them without asserting they are right.
+        uint256 earliest = uint256(first) + hook.MIN_ROUND_BLOCKS() - 1;
+        if (vm.getBlockNumber() < earliest) vm.roll(earliest);
         uint256 r = hook.closeRound();
         assertEq(r, ++closedCount);
         fallbackWinner[r] = freezer;

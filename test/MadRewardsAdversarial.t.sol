@@ -14,15 +14,20 @@ contract MadRewardsAdversarialTest is MadRewardsFixture {
         uint256 round = _close();
         (bytes memory body, bytes32 hash) = rewards.questionBody(round);
         string memory json = string(body);
+        (uint64 first, uint64 last) = token.roundBlocks(round);
+        assertEq(first, 100);
+        assertEq(last, 100 + hook.MIN_ROUND_BLOCKS() - 1);
         string memory text = string.concat(
             "Who spent most MAD freezing wallets in round 1 of token ",
             _lowercase(vm.toString(address(token))),
-            " on Ethereum, blocks 100 to 100 inclusive? Sum cost in MAD base units from that token's Frozen(address indexed by, address indexed target, uint256 cost, uint64 until) events, grouped by by, ranked highest sum first. Ties: first to reach that total in block/transaction/log order."
+            " on Ethereum, blocks 100 to ",
+            vm.toString(uint256(last)),
+            " inclusive? Sum cost in MAD base units from that token's Frozen(address indexed by, address indexed target, uint256 cost, uint64 until) events, grouped by by, ranked highest sum first. Ties: first to reach that total in block/transaction/log order."
         );
         assertEq(vm.parseJsonString(json, ".question"), text);
         assertEq(vm.parseJsonUint(json, ".chainId"), 1);
         assertEq(vm.parseJsonUint(json, ".window.fromBlock"), 100);
-        assertEq(vm.parseJsonUint(json, ".window.toBlock"), 100);
+        assertEq(vm.parseJsonUint(json, ".window.toBlock"), last);
         assertEq(vm.parseJsonString(json, ".answerType"), "address[]");
         assertEq(vm.parseJsonUint(json, ".head"), 1);
         assertEq(vm.parseJsonString(json, ".evidence"), "chain");
@@ -34,7 +39,9 @@ contract MadRewardsAdversarialTest is MadRewardsFixture {
             string.concat(
                 '{"answerType":"address[]","chainId":1,"head":1,"question":"',
                 text,
-                '","v":1,"window":{"fromBlock":100,"toBlock":100}}'
+                '","v":1,"window":{"fromBlock":100,"toBlock":',
+                vm.toString(uint256(last)),
+                "}}"
             )
         );
         assertEq(hash, keccak256(canonical), "hash must match the protocol document, independent of OracleQuestion");
@@ -313,6 +320,8 @@ contract MadRewardsAdversarialTest is MadRewardsFixture {
         hook.claim(purchase2);
         vm.prank(ALICE);
         token.freeze(BOB);
+        (uint64 first2,) = token.roundBlocks(token.currentRound());
+        vm.roll(uint256(first2) + hook.MIN_ROUND_BLOCKS() - 1);
         uint256 r2 = hook.closeRound();
         (uint256 index,,,,,) = rewards.rounds(r2);
         assertEq(index, 2);
