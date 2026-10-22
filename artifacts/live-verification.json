@@ -1,0 +1,174 @@
+{
+  "sourceRpc": "https://ethereum-rpc.publicnode.com",
+  "block": "26249971",
+  "timestamp": "1792693955",
+  "realTransactionsBroadcast": 0,
+  "state": {
+    "owner": "0xFc3C962FAD2C1cC77f1a0d46e7B8a2De79A21774",
+    "rewardOwner": "0xFc3C962FAD2C1cC77f1a0d46e7B8a2De79A21774",
+    "enabled": false,
+    "liquidity": "0",
+    "round": "1",
+    "leader": "0x0000000000000000000000000000000000000000",
+    "budget": "0",
+    "hasNFT": false,
+    "poolId": "0x7db264fee40a18a2ced348fd1a43f89ab600c3b94c5ef2de99588cc67cbedfb2",
+    "supply": "1000000000000000000000000000"
+  },
+  "checks": [
+    {
+      "name": "Ethereum chain ID",
+      "passed": true
+    },
+    {
+      "name": "MadToken ABI hash",
+      "passed": true,
+      "details": {
+        "canonicalAbiHash": "d760559a1c038f58426a1ba7664355786d76e6bc485aec2472df105c0fe9b860",
+        "manifestMatch": true
+      }
+    },
+    {
+      "name": "MadHook ABI hash",
+      "passed": true,
+      "details": {
+        "canonicalAbiHash": "9bf4003436d539782d6bddfb3886a9480f42b4c7191600b8ed1a3c436bb5cdf2",
+        "manifestMatch": true
+      }
+    },
+    {
+      "name": "MadRewards ABI hash",
+      "passed": true,
+      "details": {
+        "canonicalAbiHash": "5145ad1b6e035b5d24faf2620d199a0fae44203ecc8c6fcaf84e25b34eb89727",
+        "manifestMatch": null
+      }
+    },
+    {
+      "name": "hook deployed code hash",
+      "passed": true
+    },
+    {
+      "name": "poolManager deployed code hash",
+      "passed": true
+    },
+    {
+      "name": "router deployed code hash",
+      "passed": true
+    },
+    {
+      "name": "hub deployed code hash",
+      "passed": true
+    },
+    {
+      "name": "token deployed code hash",
+      "passed": true
+    },
+    {
+      "name": "rewards deployed code hash",
+      "passed": true
+    },
+    {
+      "name": "receiver deployed code hash",
+      "passed": true
+    },
+    {
+      "name": "fwa deployed code hash",
+      "passed": true
+    },
+    {
+      "name": "quoter deployed code hash",
+      "passed": true
+    },
+    {
+      "name": "stateView deployed code hash",
+      "passed": true
+    },
+    {
+      "name": "permit2 deployed code hash",
+      "passed": true
+    },
+    {
+      "name": "Token hook binding",
+      "passed": true
+    },
+    {
+      "name": "Hook token",
+      "passed": true
+    },
+    {
+      "name": "Discovered Rewards",
+      "passed": true
+    },
+    {
+      "name": "Rewards hook",
+      "passed": true
+    },
+    {
+      "name": "Rewards token",
+      "passed": true
+    },
+    {
+      "name": "Fee receiver immutable",
+      "passed": true
+    },
+    {
+      "name": "MAD decimals",
+      "passed": true
+    },
+    {
+      "name": "FWA decimals",
+      "passed": true
+    },
+    {
+      "name": "Receiver playground",
+      "passed": true
+    },
+    {
+      "name": "Receiver project ID",
+      "passed": true
+    },
+    {
+      "name": "Registered project receiver",
+      "passed": true
+    },
+    {
+      "name": "Parent paidBy matches receiver",
+      "passed": true
+    },
+    {
+      "name": "Pool key matches deployment",
+      "passed": true
+    },
+    {
+      "name": "Owner can simulate irreversible trading enable",
+      "passed": true,
+      "details": "eth_call success; no transaction sent"
+    },
+    {
+      "name": "Non-owner trading enable reverts",
+      "passed": true,
+      "details": "An unknown error occurred while executing the contract function \"enableTrading\"."
+    },
+    {
+      "name": "Self-freeze reverts",
+      "passed": true,
+      "details": "An unknown error occurred while executing the contract function \"freeze\"."
+    },
+    {
+      "name": "Contract target freeze reverts",
+      "passed": true,
+      "details": "An unknown error occurred while executing the contract function \"freeze\"."
+    },
+    {
+      "name": "Public payout is simulated without redirect",
+      "passed": true,
+      "details": "eth_call success; no transaction sent"
+    },
+    {
+      "name": "Unavailable route refuses a quote",
+      "passed": true,
+      "details": "An unknown error occurred while executing the contract function \"quoteExactInputSingle\"."
+    }
+  ]
+}

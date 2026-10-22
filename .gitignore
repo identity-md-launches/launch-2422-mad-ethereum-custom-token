@@ -2,3 +2,18 @@ out/
 cache/
 broadcast/
 test/scratch/
+
+# Website evidence path budget: artifacts/ <= 512 KiB in total.
+# Per-file limits are recorded and checked in artifacts/package-budget.json.
+# Only the listed deliverables override the local artifacts/ exclusion.
+!artifacts/
+artifacts/*
+!artifacts/validation.md
+!artifacts/package-budget.json
+!artifacts/browser-checks.json
+!artifacts/desktop.png
+!artifacts/deployment-review.md
+!artifacts/design-probe.json
+!artifacts/mobile.png
+!artifacts/source-verification.json
+!artifacts/live-verification.json

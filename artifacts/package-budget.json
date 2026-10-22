@@ -1,0 +1,30 @@
+{
+  "limitBytes": 8388608,
+  "rawSubmissionFileBytes": 5933017,
+  "files": 638,
+  "productionExportBytes": 1629953,
+  "excluded": [
+    "task input reads",
+    "test/scratch/",
+    "generated node_modules and tool caches"
+  ],
+  "existingProtectedFilesChanged": false,
+  "ignoreFilesChanged": [
+    ".gitignore"
+  ],
+  "explicitPathBudgetBytes": {
+    "artifacts/": 524288,
+    ".gitignore": 4096
+  },
+  "artifactFileBudgetBytes": {
+    "validation.md": 32768,
+    "package-budget.json": 4096,
+    "browser-checks.json": 16384,
+    "desktop.png": 196608,
+    "deployment-review.md": 16384,
+    "design-probe.json": 16384,
+    "mobile.png": 196608,
+    "source-verification.json": 8192,
+    "live-verification.json": 16384
+  }
+}

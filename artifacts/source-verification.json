@@ -1,0 +1,33 @@
+[
+  {
+    "name": "MadToken",
+    "canonicalAbiHash": "d760559a1c038f58426a1ba7664355786d76e6bc485aec2472df105c0fe9b860",
+    "manifestAbiHash": "d760559a1c038f58426a1ba7664355786d76e6bc485aec2472df105c0fe9b860",
+    "creationCodeHash": "39dd1b1cccfbb25d89a3632b5a46b9bea8cd9943308cea0c2d3008c1745e5990",
+    "manifestCreationCodeHash": "39dd1b1cccfbb25d89a3632b5a46b9bea8cd9943308cea0c2d3008c1745e5990",
+    "creationCodeMatches": true,
+    "abiMatch": true,
+    "runtimeMatchesWithImmutableSlotsMasked": true,
+    "immutableSlots": 2
+  },
+  {
+    "name": "MadHook",
+    "canonicalAbiHash": "9bf4003436d539782d6bddfb3886a9480f42b4c7191600b8ed1a3c436bb5cdf2",
+    "manifestAbiHash": "9bf4003436d539782d6bddfb3886a9480f42b4c7191600b8ed1a3c436bb5cdf2",
+    "creationCodeHash": "b8819a8db933fa4e32b7657957856f47a57c2db03fd448ae95f1cfeca7a7e1dd",
+    "manifestCreationCodeHash": "b8819a8db933fa4e32b7657957856f47a57c2db03fd448ae95f1cfeca7a7e1dd",
+    "creationCodeMatches": true,
+    "abiMatch": true,
+    "runtimeMatchesWithImmutableSlotsMasked": true,
+    "immutableSlots": 34
+  },
+  {
+    "name": "MadRewards",
+    "canonicalAbiHash": "5145ad1b6e035b5d24faf2620d199a0fae44203ecc8c6fcaf84e25b34eb89727",
+    "creationCodeHash": "aa94f2f9dc28ed6b1eeceb42cfc7fd468c52c7fc94716ba1e2530bf94a6050b8",
+    "creationCodeMatches": null,
+    "abiMatch": null,
+    "runtimeMatchesWithImmutableSlotsMasked": true,
+    "immutableSlots": 22
+  }
+]

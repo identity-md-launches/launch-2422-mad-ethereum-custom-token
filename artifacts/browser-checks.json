@@ -1,0 +1,244 @@
+{
+  "export": "dist/ under /preview/",
+  "realTransactionsBroadcast": 0,
+  "rpcCalls": 240,
+  "results": [
+    {
+      "name": "Live verified deployment reads and primary action at 390",
+      "passed": true
+    },
+    {
+      "name": "Invalid freeze address is explained and focused",
+      "passed": true
+    },
+    {
+      "name": "Live wallet target balance zero remains an ineligible zero-cost freeze",
+      "passed": true
+    },
+    {
+      "name": "Live contract target is rejected",
+      "passed": true
+    },
+    {
+      "name": "Connect sheet keyboard focus, Escape and focus return",
+      "passed": true
+    },
+    {
+      "name": "freeze reflows at 320",
+      "passed": true
+    },
+    {
+      "name": "trade reflows at 320",
+      "passed": true
+    },
+    {
+      "name": "rounds reflows at 320",
+      "passed": true
+    },
+    {
+      "name": "activity reflows at 320",
+      "passed": true
+    },
+    {
+      "name": "protocol reflows at 320",
+      "passed": true
+    },
+    {
+      "name": "manage reflows at 320",
+      "passed": true
+    },
+    {
+      "name": "freeze reflows at 390",
+      "passed": true
+    },
+    {
+      "name": "freeze accessibility scan",
+      "passed": true
+    },
+    {
+      "name": "trade reflows at 390",
+      "passed": true
+    },
+    {
+      "name": "trade accessibility scan",
+      "passed": true
+    },
+    {
+      "name": "rounds reflows at 390",
+      "passed": true
+    },
+    {
+      "name": "rounds accessibility scan",
+      "passed": true
+    },
+    {
+      "name": "activity reflows at 390",
+      "passed": true
+    },
+    {
+      "name": "activity accessibility scan",
+      "passed": true
+    },
+    {
+      "name": "protocol reflows at 390",
+      "passed": true
+    },
+    {
+      "name": "protocol accessibility scan",
+      "passed": true
+    },
+    {
+      "name": "manage reflows at 390",
+      "passed": true
+    },
+    {
+      "name": "manage accessibility scan",
+      "passed": true
+    },
+    {
+      "name": "freeze reflows at 768",
+      "passed": true
+    },
+    {
+      "name": "trade reflows at 768",
+      "passed": true
+    },
+    {
+      "name": "rounds reflows at 768",
+      "passed": true
+    },
+    {
+      "name": "activity reflows at 768",
+      "passed": true
+    },
+    {
+      "name": "protocol reflows at 768",
+      "passed": true
+    },
+    {
+      "name": "manage reflows at 768",
+      "passed": true
+    },
+    {
+      "name": "freeze reflows at 1440",
+      "passed": true
+    },
+    {
+      "name": "trade reflows at 1440",
+      "passed": true
+    },
+    {
+      "name": "rounds reflows at 1440",
+      "passed": true
+    },
+    {
+      "name": "activity reflows at 1440",
+      "passed": true
+    },
+    {
+      "name": "protocol reflows at 1440",
+      "passed": true
+    },
+    {
+      "name": "manage reflows at 1440",
+      "passed": true
+    },
+    {
+      "name": "Actual closed trading and absent active liquidity disable quotes",
+      "passed": true
+    },
+    {
+      "name": "Actual no-NFT and unfunded states prevent keeper writes",
+      "passed": true
+    },
+    {
+      "name": "Verified event history and filters",
+      "passed": true
+    },
+    {
+      "name": "Disconnected visitors have no management fields",
+      "passed": true
+    },
+    {
+      "name": "No uncaught application exceptions",
+      "passed": true
+    },
+    {
+      "name": "EIP-6963 names both discovered wallets and hides generic row",
+      "passed": true
+    },
+    {
+      "name": "Wallet connection rejection is recoverable",
+      "passed": true
+    },
+    {
+      "name": "Wrong network gates writes and switch uses wallet request",
+      "passed": true
+    },
+    {
+      "name": "Actual owner permissions reveal supported setting controls",
+      "passed": true
+    },
+    {
+      "name": "Owner action simulates and requires explicit wallet confirmation",
+      "passed": true
+    },
+    {
+      "name": "Account change invalidates an existing management review",
+      "passed": true
+    },
+    {
+      "name": "Freeze review presents exact cost and both payment destinations",
+      "passed": true
+    },
+    {
+      "name": "Rejected wallet transaction sends nothing",
+      "passed": true
+    },
+    {
+      "name": "Confirmed fixture freeze sends once and refreshes wallet state",
+      "passed": true
+    },
+    {
+      "name": "Quote requires selected slippage and deadline",
+      "passed": true
+    },
+    {
+      "name": "Exact ERC20 approval and refreshed quote after confirmation",
+      "passed": true
+    },
+    {
+      "name": "Exact expiring Permit2 approval and nonzero swap minimum",
+      "passed": true
+    },
+    {
+      "name": "30-second quote expiry disables sending",
+      "passed": true
+    },
+    {
+      "name": "Pending receipt persists across reload and prevents duplicate sends",
+      "passed": true
+    },
+    {
+      "name": "A confirmed transaction with substituted calldata is not reported as the reviewed action",
+      "passed": true
+    },
+    {
+      "name": "Disconnect removes management access",
+      "passed": true
+    },
+    {
+      "name": "Phone sheet includes four wallet-browser links and Coinbase Smart Wallet",
+      "passed": true
+    },
+    {
+      "name": "RPC failure is unavailable, never a zero position",
+      "passed": true
+    },
+    {
+      "name": "WebKit launch",
+      "passed": null,
+      "limitation": "WebKit could not launch because required system shared libraries were unavailable."
+    }
+  ]
+}

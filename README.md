@@ -1,6 +1,46 @@
 # Mutually Assured Destruction (MAD)
 
-Ethereum custom token and Uniswap v4 hook, paired with FWA. This project contains contracts, vendored dependencies, local integration tests and an optional mainnet fork rehearsal. It contains no website or launch manifest.
+Ethereum custom token and Uniswap v4 hook, paired with FWA. This repository includes the existing contracts and tests, plus a responsive, wallet-connected website in `web/` and its finished static export in `dist/`.
+
+
+## Website
+
+The interface supports wallet freezing, direct MAD/FWA exact-input trades, NFT acquisition and settlement, public keeper calls, verified activity and owner-only management. It uses the existing Ethereum deployment; no contract, token, fee or revenue destination was changed.
+
+```sh
+npm ci --prefix web
+npm run typecheck --prefix web
+npm run build --prefix web
+npm run preview --prefix web
+```
+
+Use a current Node release supported by Vite (Node 22.12+ or Node 24). The preview prints its local URL. `npm run dev --prefix web` starts source development. The build writes the repository-root `dist/`, with `base: './'`, relative assets and hash navigation. Serve the entire `dist/` directory on a static host; no backend, environment file, wallet relay account or private credentials are required. Keep the source manifest and lockfile in `web/`. Generated dependencies and caches are not part of the submission.
+
+A read-only visitor can inspect targets, rounds, contract state and activity. Connect supports EIP-6963 browser wallets, four mobile wallet-browser links and Coinbase Smart Wallet. Wrong-network wallets must switch to Ethereum. Every write rechecks deployed code, account, network and applicable role, reads current state, simulates, presents a review and waits for explicit wallet approval. Receipts, rejected requests, pending recovery and changed transaction calldata have separate handling. A freeze has no onchain maximum-cost parameter: its payment can change with the target’s balance before mining, as the review explains.
+
+Swaps use only the verified direct MAD/FWA Uniswap v4 pool, with separately confirmed exact ERC20 and expiring Permit2 approvals. Slippage and deadline must be selected; minimum output must be nonzero. Quotes expire after 30 seconds and are refreshed after confirmations. Native ETH trading, distributor allocation claims and Playground conversion/claims are not offered without the required route or interface/proof evidence. Held revenue is labeled separately from personal claimability.
+
+### Deployment and current availability
+
+The source continuation is pinned to `09a61c7f3023f920655bbabe7a3855c2e6a7598a`. Token/hook ABIs and creation bytecode match the verified manifest; all three project runtimes match the compiled source after masking compiler-identified immutable slots. Rewards was discovered through the live hook, not guessed. Runtime code hashes and onchain relationships are checked again before writes.
+
+At the recorded preflight block **26,249,971** (2026-10-22 18:32:35 UTC), trading was closed, active pool liquidity was zero, round 1 had no leader or kept NFT, and the NFT budget was empty. The site reads these values live and explains unavailable actions. Real successful swaps and live NFT/oracle settlement could not be exercised in that state. The registered Playground project 1 receiver was confirmed, including `receiver.playground()`, `receiver.projectId()`, `hub.projects(1).receiver` and the parent job’s public `paidBy`.
+
+[Live preflight](artifacts/live-verification.json), [source comparison](artifacts/source-verification.json), [design system](DESIGN.md), [validation and limitations](artifacts/validation.md).
+
+### Website checks
+
+```sh
+npm exec --prefix web -- playwright install chromium
+npm run check:browser --prefix web
+npm run check:deployment --prefix web
+```
+
+The browser check manages its own temporary static server under `/preview/` and writes local results under `test/scratch/website-tests/`. Live assertions reflect the recorded launch state; revise those assertions against new evidence if the market opens or rounds advance. The wallet, successful trade and receipt scenarios are explicitly isolated fixtures. The RPC forwarding allowlist prevents them from broadcasting real transactions. The deployment preflight uses read calls and `eth_call` simulations only. An optional `--rpc` argument selects an Ethereum read endpoint.
+
+Recorded worker checks: a fresh lockfile install, production build and TypeScript check passed; 58 browser checks passed, including six route accessibility scans; 34 live deployment checks passed; the existing token/hook/rewards suites passed 44 tests; the pinned taste probe passed 16/16. There were no uncaught application exceptions or missing local assets in the reviewed export. No real financial transaction was broadcast. WebKit launch was attempted but the runtime lacked required system libraries; physical wallets/devices, screen readers and native 200% browser zoom were not tested. Full details and fixes are in the validation record. These are worker observations, not independent certification.
+
+The existing contract documentation continues below. The historical “no website” scope has been superseded by this website assignment only.
 
 ## Contracts and deployment
 
